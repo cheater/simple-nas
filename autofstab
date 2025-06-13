@@ -1,0 +1,117 @@
+#!/usr/bin/bash
+
+LOCKFILE="/var/lock/`basename $0`"
+LOCKFD=99
+
+# PRIVATE
+_lock()             { flock -$1 $LOCKFD; }
+_free_lock()        { _lock u; _lock xn && rm -f $LOCKFILE; }
+_prepare_lock()     { eval "exec $LOCKFD>\"$LOCKFILE\""; trap _free_lock EXIT; }
+
+# ON START
+_prepare_lock
+
+# PUBLIC
+exlock_now()        { _lock xn; }  # obtain an exclusive lock immediately or fail
+exlock()            { _lock x; }   # wait to obtain an exclusive lock
+shlock()            { _lock s; }   # obtain a shared lock
+unlock()            { _lock u; }   # drop a lock
+
+
+
+exlock
+
+
+# Back up fstab
+
+ts="$(date +"%Y-%m-%dT%H-%M-%S.%N")"
+
+cp /etc/fstab /tmp/fstab."$ts"
+
+
+# Make strings appropriate for using in /etc/fstab 
+mangle() {
+  local i= chr= out=
+  local {a..f}= {A..F}=
+
+  for (( i = 0; i < ${#1}; i++ )); do
+    chr=${1:i:1}
+    case $chr in
+      [[:space:]\\])
+        printf -v chr '%03o' "'$chr"
+        out+=\\
+        ;;
+    esac
+    out+=$chr
+  done
+
+  printf '%s' "$out"
+}
+
+
+for dev in /dev/disk/by-uuid/*; do
+
+  # Get info about partition
+
+  partinfo="$(lsblk -no MOUNTPOINT,NAME,UUID,LABEL,TYPE,FSTYPE -P "$dev")"
+  eval "$partinfo" # all partition info now available in variables
+
+
+  # Only process partitions
+
+  if ! [ "$TYPE" = "part" ]; then
+    continue
+  fi
+
+
+  # Check if it's already mounted
+  
+  if ! [ -z "$MOUNTPOINT" ]; then
+    continue
+  fi
+
+
+  # Check if it's already in fstab. -F makes grep not interpret regex, just
+  # search for fixed strings. -c makes it output match count.
+
+  if [ "$(grep -F -c "$dev" /etc/fstab)" -gt 0 ]; then
+    continue
+  fi
+
+
+  # It's not in fstab. Add it.
+
+  
+  # Find a mount point that will be fine
+  
+  mnt_base="/mnt/$LABEL"
+  mnt="$mnt_base"
+  if [ -e "$mnt" ]; then
+    declare -i dup=0
+    while :; do
+      mnt="${mnt_base}_${dup}"
+      if ! [ -e "$mnt" ]; then
+	break
+      fi
+      dup="$dup+1"
+    done
+  fi
+
+  mkdir -p "$mnt" # otherwise mounting won't succeed
+  chmod a+rwx "$mnt"
+
+  mnt_fstab="$(mangle "$mnt")"
+  dev_fstab="$(mangle "$dev")"
+
+  fstabfmt="$dev_fstab	$mnt_fstab	$FSTYPE	defaults	0	0"
+
+  echo "$fstabfmt"
+done >> /etc/fstab
+
+# >> /tmp/autofstab."$ts"
+
+
+# Mount all partitions, including the ones added just now.
+# Passing -F makes mount fork, so that file systems are mounted in parallel.
+
+mount -a -F

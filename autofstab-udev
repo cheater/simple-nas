@@ -1,0 +1,6 @@
+#!/usr/bin/bash
+
+# Use at to schedule autofstab to run now, but asynchronously. This is done
+# because this script (autofstab-udev) us run from a udev rule, and when udev
+# runs external scripts, if they take more than one second, they are killed.
+echo /usr/local/bin/autofstab | at now

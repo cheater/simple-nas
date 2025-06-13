@@ -1,0 +1,41 @@
+#!/usr/bin/bash
+
+# Configuration
+
+username="" # set the name of your linux user that samba will use
+netbios="" # set the name of your server that samba will show up as in the network browser
+
+
+# The script (don't change anything below unless you know what you're doing!)
+
+if [ -z "$username" ]; then
+  echo "You have to set the user name by editing this file." >&2
+  exit 1
+fi
+
+if [ -z "$netbios" ]; then
+  echo "You have to set the netbios name by editing this file." >&2
+  exit 1
+fi
+
+apt update
+apt install at samba # prerequisites
+
+cp -iv autofstab.rules /etc/udev/rules.d/
+cp -iv autofstab /usr/local/bin/
+cp -iv autofstab-udev /usr/local/bin/
+
+chmod a+x /usr/local/bin/autofstab
+chmod a+x /usr/local/bin/autofstab-udev
+
+/usr/local/bin/autofstab
+
+
+# Add netbios name right after the [global] section
+sed '/^\[global\]$'"/a\ \ \ netbios name = $netbios" /etc/samba/smb.conf
+
+# Add share
+cat smb.conf.fragment | sed "s/= user/= $username/g" >> /etc/samba/smb.conf
+
+service smbd restart
+ufw allow samba

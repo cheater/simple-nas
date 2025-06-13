@@ -1,0 +1,3 @@
+# Automatically add new plugged in file systems to fstab, and mount them
+
+KERNEL=="sd*", SUBSYSTEM=="block", ACTION=="add", RUN+="/usr/local/bin/autofstab-udev"

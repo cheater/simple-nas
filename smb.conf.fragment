@@ -1,0 +1,11 @@
+
+[share]
+   comment = Samba on Ubuntu
+   path = /mnt
+   read only = no
+   browsable = yes
+   guest ok = yes
+   create mask = 666
+   directory mask = 777
+   force user = user
+   force group = user
