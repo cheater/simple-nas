@@ -23,6 +23,8 @@ Any drives you add to `/etc/fstab` before triggering the automatic mount by plug
 
 ## Installation
 
+On Ubuntu and other Linux distributions with `apt`, this should be as simple as:
+
 1. Open the `install` script and configure the options at the top of the file. Save the file.
 
 2. Execute the `install` script under `sudo`:
@@ -31,4 +33,4 @@ Any drives you add to `/etc/fstab` before triggering the automatic mount by plug
 sudo ./install
 ```
 
-That should be it.
+On other distributions, you'll have to adjust things to use your package manager.
