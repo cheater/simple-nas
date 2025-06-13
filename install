@@ -39,3 +39,5 @@ cat smb.conf.fragment | sed "s/= user/= $username/g" >> /etc/samba/smb.conf
 
 service smbd restart
 ufw allow samba
+
+apt install wsdd-server # To make the server show up in Windows 7+ "Network" view
