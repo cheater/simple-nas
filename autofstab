@@ -110,6 +110,12 @@ done >> /etc/fstab
 
 # >> /tmp/autofstab."$ts"
 
+# Have to reload systemd to use new fstab. If you don't do that and try to mount after editing fstab, it will succeed with the following warning:
+# # mount P3
+# lmount: (hint) your fstab has been modified, but systemd still uses
+#        the old version; use 'systemctl daemon-reload' to reload.
+
+systemctl daemon-reload
 
 # Mount all partitions, including the ones added just now.
 # Passing -F makes mount fork, so that file systems are mounted in parallel.
